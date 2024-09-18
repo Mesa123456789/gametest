@@ -17,6 +17,7 @@ namespace gametest
         Texture2D playerTex;
         Texture2D popup;
         Texture2D uni;
+        Texture2D food3;
         public Vector2 foodPos;
         public Texture2D foodTex;
         Vector2 playerPos = new Vector2(100,100);
@@ -25,6 +26,7 @@ namespace gametest
         Bag bag;
         public static Player player;
         public static List<food> BagList = new List<food>();
+        public static List<food> CraftList = new List<food>();
         public static bool IsPopUp = false;
         //ทำlistรับอาหารที่ปรุงเส้ดแล้ว และทำboolรับค่าว่าได้อะไร เมื่อได้สิ่งนั้นค่อยวาด
         public static List<Texture2D> Menu;
@@ -53,28 +55,29 @@ namespace gametest
             food2 = Content.Load<Texture2D>("enemy");
             popup = Content.Load<Texture2D>("rectangle");
             uni = Content.Load<Texture2D>("Uni");
+            food3 = Content.Load<Texture2D>("flower");
             //Menu.Add(uni);
-            food.foodList.Add(new food((new Vector2 (200 , 300)), food1));
+            food.foodList.Add(new food((new Vector2(200 , 300)), food3));
             food.foodList.Add(new food((new Vector2(300, 300)), food2));
+            food.MenuList.Add(new food((new Vector2(200, 300)), food3));
+            food.MenuList.Add(new food((new Vector2(300, 300)), food2));
+            //food.foodList.Add(new food((new Vector2(300, 400)), food1));
+
             // TODO: use this.Content to load your game content here
         }
 
         public int countPopUp;
         public bool Ontable = false;
         public Rectangle tableBox = new Rectangle(100 , 150,64,64);
+        public Rectangle equalBox = new Rectangle(350, 75, 64,64);
+        bool Crafting = false;
         protected override void Update(GameTime gameTime)
         {
             MouseState ms = Mouse.GetState();
-            Rectangle mouseBox = new Rectangle(ms.X,ms.Y,32,32);
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
-            for (int i = food.foodList.Count - 1; i >= 0; i--)
-            {
-                food.foodList[i].Update();
-            }
+            Rectangle mouseBox = new Rectangle(ms.X,ms.Y,50,50);
             if (player.playerBox.Intersects(tableBox))
             {
-                if (ms.LeftButton == ButtonState.Pressed)
+                if (ms.LeftButton == ButtonState.Pressed && mouseBox.Intersects(tableBox))
                 {
                     Ontable = true;
                 }
@@ -83,22 +86,35 @@ namespace gametest
             {
                 Ontable = false;
             }
-            //คลิกไม่ได้ ค่อยมาทำ
-            //for (int i = 0; i < BagList.Count; ++i)
-            //{
-            //    if (mouseBox.Intersects(BagList[i].foodBox))
-            //    {
-            //        if (ms.LeftButton == ButtonState.Pressed)
-            //        {
-            //            BagList[i].foodPos = new Vector2(400,400);
-            //        }
-            //    }
-            //}
-                
-            
 
+            for (int i = 0; i < BagList.Count; i++)
+            {
+                BagList[i].Update();
+                if (mouseBox.Intersects(BagList[i].foodBox) && ms.LeftButton == ButtonState.Pressed && Ontable)
+                {
+                    for(int j = food.MenuList.Count; j <= 2; j++)
+                    { 
+                        food.getFood++;
+                    }
+                    for (int j = food.MenuList.Count; j > 2 && j <= 5; j++)
+                    {
+                        food.IsUni++;
+                    }
+                    CraftList.Add(BagList[i]);
+                    BagList.RemoveAt(i);
+                    break;
+                }  
+            }
+            if (mouseBox.Intersects(equalBox) && ms.LeftButton == ButtonState.Pressed && Ontable)
+            {
+                Crafting = true;
+            }
+            for (int i = food.foodList.Count - 1; i >= 0; i--)
+            {
+                food.foodList[i].Update();
+            }
             player.Update();
-
+            
 
 
 
@@ -113,34 +129,53 @@ namespace gametest
 
             // TODO: Add your drawing code here
             _spriteBatch.Begin();
-            
-            if (IsPopUp == true)
+            foreach (food food in BagList)
             {
-                _spriteBatch.Draw(popup, new Rectangle(700, 100, 100, 70), Color.Black);
-                //_spriteBatch.Draw(uni, new Vector2(720 , 120), new Rectangle(0,0,128 , 128), Color.White);
-                for (int i = 0; i < BagList.Count; ++i)
+                if (IsPopUp == true)
                 {
-                    _spriteBatch.Draw(BagList[i].foodTex, new Vector2(720, 120), Color.White);
+
+                    for (int i = 0; i < BagList.Count; i++)
+                    {
+                        _spriteBatch.Draw(popup, new Rectangle(700, 100, 100, 70), Color.Black);
+                        _spriteBatch.Draw(BagList[i].foodTex, new Vector2(720, 120), Color.White);
+                    }
+                    CountTime();
                 }
-                CountTime();
             }
-            for(int i = 0; i < food.foodList.Count; i++)
+            foreach (food food in food.foodList)
             {
-                food.foodList[i].Draw(_spriteBatch);
+                for (int i = 0; i < food.foodList.Count; i++)
+                {
+                    food.foodList[i].Draw(_spriteBatch);
+                }
+
             }
-            for (int i = 0; i < BagList.Count; i++)
-            {
-                _spriteBatch.Draw(BagList[i].foodTex, new Vector2(0 + i * 50, 0), Color.White);
-            }
+
             _spriteBatch.Draw(popup, new Vector2(100,150),tableBox, Color.White);
 
             player.Draw(_spriteBatch);
             //ui craft
             if(Ontable == true)
             {
-                _spriteBatch.Draw(popup, new Rectangle(200, 50, 500, 200), Color.White);
+                //craft
+                _spriteBatch.Draw(popup, new Rectangle(200, 50, 500, 150), Color.Red);
+                _spriteBatch.Draw(popup, new Rectangle(200, 230, 500, 200), Color.White);
+                _spriteBatch.Draw(popup,new Vector2(350, 75), equalBox , Color.White);
+                for (int i = 0; i < CraftList.Count; i++)
+                {
+                    _spriteBatch.Draw(CraftList[i].foodTex, new Vector2(230 + i * 60, 70), Color.White);
+                }
+                for (int i = 0; i < BagList.Count; i++)
+                {
+                    _spriteBatch.Draw(BagList[i].foodTex, new Vector2(230 + i * 60, 250), Color.White);
+                }
+                if (food.getFood == 2 && Crafting == true)
+                {
+                    _spriteBatch.Draw(uni, new Rectangle(450, 70, 64, 64), Color.White);
+                }
+
             }
-            
+          
 
             _spriteBatch.End();
             base.Draw(gameTime);
